@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CalendarScope {
+  PERSONAL
+  SHARED
+}
+
+enum Recurrence {
+  NONE
+  DAILY
+  WEEKLY
+}
+
+enum EntrySource {
+  MANUAL
+  AUTO_GENERATED
+}
+
+enum RewardScope {
+  PERSONAL
+  SHARED
+}
+
+enum LedgerSourceType {
+  PRACTICE_COMPLETE
+  SHARED_GOAL_COMPLETE
+  INTENTION
+  APPRECIATION_RECEIVED
+  REWARD_REDEEMED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  householdId  String?
+  household    Household? @relation(fields: [householdId], references: [id])
+  createdAt    DateTime @default(now())
+
+  createdCalendarEntries   CalendarEntry[]     @relation("CreatedEntries")
+  completedCalendarEntries CalendarEntry[]     @relation("CompletedEntries")
+  createdRewards           Reward[]            @relation("CreatedRewards")
+  redemptions              RewardRedemption[]
+  ledgerEntries            PointsLedgerEntry[]
+  journalEntries           JournalEntry[]
+  appreciationsSent        AppreciationLog[]   @relation("AppreciationSent")
+  appreciationsReceived    AppreciationLog[]   @relation("AppreciationReceived")
+}
+
+model Household {
+  id         String   @id @default(cuid())
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  members         User[]
+  sharedEntries   CalendarEntry[]
+  sharedRewards   Reward[]
+  ledgerEntries   PointsLedgerEntry[]
+  appreciations   AppreciationLog[]
+}
+
+model CalendarEntry {
+  id          String        @id @default(cuid())
+  scope       CalendarScope
+  userId      String?
+  household   Household?    @relation(fields: [householdId], references: [id])
+  householdId String?
+  title       String
+  description String?
+  category    String
+  scheduledFor DateTime
+  recurrence  Recurrence    @default(NONE)
+  pointsValue Int           @default(10)
+  completedAt DateTime?
+  completedByUserId String?
+  completedBy User?         @relation("CompletedEntries", fields: [completedByUserId], references: [id])
+  createdByUserId String
+  createdBy   User          @relation("CreatedEntries", fields: [createdByUserId], references: [id])
+  source      EntrySource   @default(MANUAL)
+  createdAt   DateTime      @default(now())
+
+  checklist   PracticeChecklistItem[]
+
+  @@index([userId, scheduledFor])
+  @@index([householdId, scheduledFor])
+}
+
+model PracticeChecklistItem {
+  id              String        @id @default(cuid())
+  calendarEntryId String
+  calendarEntry   CalendarEntry @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
+  text            String
+  order           Int           @default(0)
+  completed       Boolean       @default(false)
+}
+
+model PointsLedgerEntry {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  householdId String?
+  household   Household?       @relation(fields: [householdId], references: [id])
+  points      Int
+  reason      String
+  sourceType  LedgerSourceType
+  sourceId    String?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+}
+
+model Reward {
+  id              String      @id @default(cuid())
+  scope           RewardScope
+  userId          String?
+  householdId     String?
+  household       Household?  @relation(fields: [householdId], references: [id])
+  title           String
+  description     String?
+  costPoints      Int
+  createdByUserId String
+  createdBy       User        @relation("CreatedRewards", fields: [createdByUserId], references: [id])
+  createdAt       DateTime    @default(now())
+
+  redemptions RewardRedemption[]
+}
+
+model RewardRedemption {
+  id             String   @id @default(cuid())
+  rewardId       String
+  reward         Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  redeemedByUserId String
+  redeemedBy     User     @relation(fields: [redeemedByUserId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+model AppreciationLog {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  fromUserId  String
+  fromUser    User      @relation("AppreciationSent", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User      @relation("AppreciationReceived", fields: [toUserId], references: [id])
+  points      Int
+  note        String?
+  createdAt   DateTime  @default(now())
+}
+
+model JournalEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  date       DateTime
+  gratitude  String
+  showedUp   String
+  win        String
+  growthArea String
+  photoUrl   String?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, date])
+}
