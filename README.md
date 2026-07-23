@@ -1,5 +1,7 @@
 # HabitHarmony
 
+[![CI](https://github.com/joeoconno/scheduler_kids_pickup/actions/workflows/ci.yml/badge.svg)](https://github.com/joeoconno/scheduler_kids_pickup/actions/workflows/ci.yml)
+
 A calm mindfulness and personal-growth app for individuals or couples: dual calendars (personal + shared), an AI-assisted auto-scheduler, a bidirectional points/rewards store, daily reflection journaling, and a weekly progress dashboard.
 
 ## Stack
@@ -37,6 +39,12 @@ A calm mindfulness and personal-growth app for individuals or couples: dual cale
 - `npm test` — Vitest unit tests
 - `npm run db:migrate` — Prisma migrate (dev)
 - `npm run db:seed` — seed demo data
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request: install, lint, type-check, unit tests, a Prisma migration validation against a throwaway Postgres service container, and a production build.
+
+There's no GitHub Pages deployment here — Pages only serves static files, and this app needs a live Postgres database, server actions, session auth, and server-side Claude API calls, none of which Pages can run. Deploy it to a platform that runs a Node server instead (e.g. Vercel, Railway, Fly.io, Render), with `DATABASE_URL`, `AUTH_SECRET`, and `ANTHROPIC_API_KEY` set as environment variables there.
 
 ## Current scope
 
